@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>הבית החדש · תכנון פריקה</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="הבית החדש">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#2f6fb0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700&family=Assistant:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Layout: workbench — wall elevations on the main stage, item tray beside (bottom sheet on phones) */
+  --paper:#f4f5f2; --card:#ffffff; --ink:#1d2733; --muted:#5d6a76; --line:#c9d0d6;
+  --accent:#e2572b; --accent-soft:#fbe3d8;
+  --wallA:#2f6fb0; --wallB:#3c8a5a; --wallC:#a8742a; --wallD:#7a55a6; --wallE:#b0457a; --wallF:#2a8585; --wallG:#4f5fb8;
+  --hatch:#dfe3e6; --ok:#2f8a57; --named:#d4ebfa; --named-ink:#1c4f78;
+  --display:"Rubik","Assistant",system-ui,sans-serif;
+  --body:"Assistant",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#151a20; --card:#1e252d; --ink:#e7ecf0; --muted:#9aa7b3; --line:#3a4651;
+    --accent:#f07a4f; --accent-soft:#4a2a1f; --hatch:#2a333c; --named:#1d3a52; --named-ink:#bfe2fb;
+    --wallA:#6ea6dd; --wallB:#6fc18f; --wallC:#d8a65c; --wallD:#b39ddb; --wallE:#e38bb5; --wallF:#6cc7c7; --wallG:#9aa7ef; --ok:#6fc18f;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#151a20; --card:#1e252d; --ink:#e7ecf0; --muted:#9aa7b3; --line:#3a4651;
+  --accent:#f07a4f; --accent-soft:#4a2a1f; --hatch:#2a333c; --named:#1d3a52; --named-ink:#bfe2fb;
+  --wallA:#6ea6dd; --wallB:#6fc18f; --wallC:#d8a65c; --wallD:#b39ddb; --wallE:#e38bb5; --wallF:#6cc7c7; --wallG:#9aa7ef; --ok:#6fc18f;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.code{font-family:var(--display);font-weight:700;direction:ltr;unicode-bidi:isolate;font-variant-numeric:tabular-nums}
+
+header{padding:18px 20px 0;display:flex;flex-wrap:wrap;gap:12px 24px;align-items:end;justify-content:space-between}
+header h1{font-size:1.55rem}
+header p{margin:4px 0 0;color:var(--muted);font-size:.95rem;max-width:62ch}
+.tabs{display:flex;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:4px}
+.tabs button{border:0;background:none;padding:7px 14px;border-radius:7px;font-weight:600;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--paper)}
+.status{font-size:.85rem;color:var(--muted);padding:6px 20px 0;min-height:1.4em}
+.status.warn{color:var(--accent)}
+
+.layout{display:grid;grid-template-columns:340px minmax(0,1fr);gap:16px;padding:14px 20px 40px;align-items:start}
+.stage{display:flex;flex-direction:column;gap:18px;min-width:0}
+.wall{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px 8px}
+.wall-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.wall-head h2{font-size:1.1rem}
+.wall-head .tag{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;color:#fff;font-family:var(--display);font-weight:700}
+.wall-head small{color:var(--muted)}
+.scroller{overflow-x:auto;margin-top:6px}
+.scroller svg{display:block;width:100%;height:auto}
+.wall[data-wall="A"] .scroller svg{min-width:860px}
+.wall[data-wall="C"] .scroller svg{max-width:460px}
+.wall[data-wall="B"] .scroller svg,.wall[data-wall="D"] .scroller svg,.wall[data-wall="E"] .scroller svg,.wall[data-wall="F"] .scroller svg,.wall[data-wall="G"] .scroller svg{max-width:720px}
+svg text{font-family:var(--display)}
+.z{cursor:pointer}
+.z rect.box{fill:var(--card);stroke:var(--ink);stroke-width:6}
+.z:hover rect.box,.z.drop rect.box{fill:var(--accent-soft)}
+.z.has rect.box{fill:var(--named)}
+.z.sel rect.box{stroke:var(--accent);stroke-width:14;stroke-dasharray:36 22}
+.z.unsure rect.box{stroke-dasharray:30 18}
+.z text.c{fill:var(--ink);font-weight:700;text-anchor:middle;dominant-baseline:central}
+.z text.n{fill:var(--accent);font-weight:700;text-anchor:middle;dominant-baseline:central}
+.z text.k{fill:var(--muted);text-anchor:start;font-weight:500}
+.z text.nm{fill:var(--named-ink);font-weight:700;text-anchor:middle;dominant-baseline:central}
+.z text.cs{fill:var(--muted);font-weight:600;text-anchor:end}
+.arming .z rect.box{stroke:var(--accent)}
+.appl rect{fill:url(#hatch);stroke:var(--muted);stroke-width:5}
+.appl text{fill:var(--muted);text-anchor:middle;dominant-baseline:central;font-weight:500}
+.struct{fill:var(--ink)}
+.dim{fill:var(--muted);font-size:70px;text-anchor:middle}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.85rem;color:var(--muted);margin-top:4px}
+.legend i{display:inline-block;width:14px;height:14px;border:2px solid var(--ink);border-radius:3px;vertical-align:-2px;margin-inline-end:5px}
+
+.layout>aside{grid-column:1;grid-row:1}
+.layout>.stage{grid-column:2;grid-row:1}
+aside{position:sticky;top:12px;display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 24px)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+.panel h3{font-size:1rem;margin-bottom:8px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.panel h3 small{font-family:var(--body);font-weight:400;color:var(--muted);font-size:.85rem}
+.tray{overflow:auto;min-height:120px;flex:1}
+.cards{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.card{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:9px;padding:7px 9px;background:var(--paper);cursor:grab;user-select:none}
+.card.sel{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.card img{width:34px;height:34px;object-fit:cover;border-radius:5px;flex:none}
+.card .t{flex:1;min-width:0}
+.card .t b{display:block;font-weight:600;overflow-wrap:anywhere}
+.card .t span{font-size:.8rem;color:var(--muted);overflow-wrap:anywhere}
+.dots{color:var(--accent);letter-spacing:1px;font-size:.75rem;flex:none}
+.empty{color:var(--muted);font-size:.9rem;padding:6px 0}
+.row{display:flex;gap:6px;flex-wrap:wrap}
+.row input,.row select{flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:7px 9px;background:var(--paper)}
+.btn{border:1px solid var(--ink);background:var(--ink);color:var(--paper);border-radius:8px;padding:7px 13px;font-weight:600}
+.btn.ghost{background:none;color:var(--ink);border-color:var(--line)}
+.btn.accent{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn:disabled{opacity:.5;cursor:default}
+.mini{border:0;background:none;color:var(--muted);padding:2px 6px;border-radius:6px;font-size:.85rem}
+.mini:hover{background:var(--hatch);color:var(--ink)}
+.mini.danger{color:var(--accent)}
+.hint{font-size:.85rem;color:var(--muted);margin:6px 0 0}
+.sep{height:1px;background:var(--line);margin:12px 0}
+
+.zone-panel{padding:0;overflow:hidden;border-color:color-mix(in srgb,var(--wc,var(--line)) 35%,var(--line))}
+.zp-head{display:flex;gap:12px;align-items:center;padding:14px 14px 12px;background:color-mix(in srgb,var(--wc) 13%,var(--card))}
+.zp-icon{flex:none;width:46px;height:46px;border-radius:12px;display:grid;place-items:center;background:var(--wc);color:#fff}
+.zp-icon svg{width:26px;height:26px}
+.zp-title{flex:1;min-width:0}
+.zp-kind{font-family:var(--display);font-weight:700;font-size:1.15rem;display:flex;gap:8px;align-items:center}
+.chip{font-family:var(--display);font-weight:700;font-size:.85rem;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:1px 9px;direction:ltr;unicode-bidi:isolate;color:var(--muted)}
+.zp-where{color:var(--muted);font-size:.85rem;line-height:1.35;margin-top:2px}
+.icon-btn{flex:none;border:0;background:transparent;color:var(--muted);width:34px;height:34px;border-radius:50%;display:grid;place-items:center}
+.icon-btn:hover{background:var(--hatch);color:var(--ink)}
+.icon-btn svg{width:18px;height:18px}
+.zp-body{padding:14px;display:flex;flex-direction:column;gap:6px}
+.fl{display:flex;align-items:center;gap:7px;font-weight:700;font-size:.98rem;margin-top:6px}
+.fl svg{width:18px;height:18px;color:var(--wc)}
+.fl .opt{font-weight:400;color:var(--muted);font-size:.88rem}
+.zone-panel .zname,.zone-panel textarea{width:100%;border:1.5px solid var(--line);border-radius:12px;padding:11px 13px;background:var(--card);font:inherit;font-size:1.05rem;transition:border-color .15s,box-shadow .15s}
+.zone-panel .zname:focus,.zone-panel textarea:focus{outline:none;border-color:var(--wc);box-shadow:0 0 0 3px color-mix(in srgb,var(--wc) 22%,transparent)}
+.btn-save{margin-top:10px;display:flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:12px;padding:12px;font-weight:700;font-size:1.05rem;background:var(--wc);color:#fff}
+.btn-save svg{width:20px;height:20px}
+.btn-save.done{background:var(--ok)}
+.zp-actions{display:flex;flex-direction:column;gap:6px;margin-top:8px;padding-top:12px;border-top:1px solid var(--line)}
+.act{display:flex;align-items:center;gap:9px;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:9px 12px;font-weight:600;text-align:start}
+.act:hover{background:var(--paper)}
+.act svg{width:18px;height:18px;flex:none}
+.act.danger{color:var(--accent)}
+.act.armed{background:var(--accent);color:#fff;border-color:var(--accent)}
+.move-note{display:flex;gap:8px;align-items:center;color:var(--accent);font-weight:600;font-size:.92rem}
+.move-note svg{width:20px;height:20px;flex:none}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.steps li{display:flex;gap:10px;align-items:center;font-size:.95rem}
+.steps .si{flex:none;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--named);color:var(--named-ink)}
+.steps .si svg{width:19px;height:19px}
+.zone-panel textarea{min-height:70px;resize:vertical}
+
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);padding:18px;width:min(520px,calc(100vw - 32px))}
+dialog::backdrop{background:rgba(10,15,20,.45)}
+dialog h3{margin-bottom:10px}
+.found{list-style:none;padding:0;margin:10px 0;display:flex;flex-direction:column;gap:6px;max-height:46vh;overflow:auto}
+.found li{display:flex;gap:6px;align-items:center}
+.found input[type=text]{flex:1;min-width:0;border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:var(--paper)}
+.found select{border:1px solid var(--line);border-radius:7px;padding:6px;background:var(--paper)}
+.previews{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.previews img{width:64px;height:64px;object-fit:cover;border-radius:7px;border:1px solid var(--line)}
+
+/* labels view */
+.labels-wrap{padding:14px 20px 40px;display:flex;flex-direction:column;gap:16px}
+.labels-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.labels-bar .sum{color:var(--muted);margin-inline-end:auto}
+.labels{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.lbl{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+.lbl .top{display:flex;align-items:center;gap:12px;padding:10px 14px;color:#fff}
+.lbl .top .code{font-size:2.1rem;line-height:1}
+.lbl .top span{font-size:.9rem;opacity:.95}
+.lbl ul{margin:0;padding:10px 14px 12px;padding-inline-start:30px;font-size:.95rem}
+.lbl ul span{color:var(--muted);font-size:.8rem}
+.lbl .note{padding:0 14px 12px;font-size:.85rem;color:var(--muted)}
+.maps{display:grid;gap:12px}
+
+.lbl .top .nm{font-family:var(--display);font-size:1.5rem;font-weight:700;line-height:1.15}
+.lbl .top .badge{font-family:var(--display);font-weight:700;background:rgba(255,255,255,.22);border-radius:6px;padding:2px 8px;font-size:1rem;direction:ltr;unicode-bidi:isolate}
+.lbl .top{flex-direction:column;align-items:flex-start;gap:4px}
+.lbl .top .sub{display:flex;gap:8px;align-items:center;font-size:.85rem;opacity:.95}
+.sharebar{margin:8px 20px 0;padding:10px 14px;border-radius:12px;background:var(--card);border:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;font-size:.92rem}
+.sharebar span{flex:1;min-width:200px;color:var(--muted)}
+#importBar{border-color:var(--accent);background:var(--accent-soft)}
+#importBar span{color:var(--ink);font-weight:600}
+@media (max-width:900px){
+  .layout>aside,.layout>.stage{grid-column:auto;grid-row:auto}
+  .layout{grid-template-columns:1fr;padding-bottom:46vh}
+  aside{position:fixed;inset:auto 0 0 0;top:auto;max-height:44vh;z-index:5;gap:0;background:var(--paper);border-top:1px solid var(--line);box-shadow:0 -6px 20px rgba(0,0,0,.12);padding:8px 10px;overflow:auto}
+  aside .panel{border-radius:10px}
+  .zone-panel:not([hidden]) ~ .hint-panel{display:none}
+  aside:has(.zone-panel[hidden]){display:none}
+  .layout{padding-bottom:40px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>הבית החדש · תכנון פריקה</h1>
+    <p>שרטוט מפושט ופרופורציונלי של ארונות המטבח והבית, לפי התוכניות. לוחצים על מגירה או מדף, נותנים לו שם (מה ייכנס אליו) ואפשר להוסיף הערה. בסוף מקבלים מדבקות לארגזים ומפה לחברת ההובלה.</p>
+  </div>
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tab-plan" aria-selected="true">תכנון</button>
+    <button role="tab" id="tab-labels" aria-selected="false">מדבקות לחברת ההובלה</button>
+  </div>
+</header>
+<div class="status" id="status" aria-live="polite"></div>
+<div class="sharebar" id="importBar" hidden>
+  <span>קיבלת תכנון ששותף איתך. לטעון אותו לטלפון הזה? (הוא יחליף את מה שכבר כתוב כאן)</span>
+  <button class="btn" id="importYes">טעינה</button><button class="btn ghost" id="importNo">לא עכשיו</button>
+</div>
+<div class="sharebar" id="shareBar">
+  <span>כל מה שכותבים נשמר בטלפון הזה. כדי שאחרים יראו, שולחים להם את התכנון:</span>
+  <button class="btn accent" id="shareBtn">שליחת התכנון בוואטסאפ</button>
+</div>
+
+<div id="view-plan" class="layout">
+  <section class="stage" id="stage"></section>
+  <aside>
+    <div class="panel zone-panel" id="zonePanel" hidden></div>
+    <div class="panel hint-panel">
+      <h3>איך משתמשים</h3>
+      <ol class="steps">
+        <li><span class="si" id="si1"></span>לוחצים על מגירה או מדף בשרטוט</li>
+        <li><span class="si" id="si2"></span>כותבים מה ייכנס אליו</li>
+        <li><span class="si" id="si3"></span>לוחצים ״עדכון״ והתא נצבע בתכלת</li>
+      </ol>
+      <p class="hint" id="hintCount"></p>
+    </div>
+  </aside>
+</div>
+
+<div id="view-labels" class="labels-wrap" hidden>
+  <div class="labels-bar">
+    <span class="sum" id="labelsSum"></span>
+    <button class="btn ghost" id="copyBtn">העתקת הרשימה</button>
+    <button class="btn" id="dlBtn">הדפסה</button>
+  </div>
+  <div class="labels" id="labels"></div>
+  <h2 style="font-size:1.1rem;margin-top:8px">מפת פריקה</h2>
+  <div class="maps" id="maps"></div>
+</div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <pattern id="hatch" width="40" height="40" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="40" height="40" style="fill:var(--hatch)"></rect>
+      <line x1="0" y1="0" x2="0" y2="40" stroke-width="10" style="stroke:var(--line)"></line>
+    </pattern>
+  </defs>
+</svg>
+
+<script>
+"use strict";
+/* ---------- Kitchen geometry (mm, measured from floor; x left→right facing the wall) ---------- */
+const HEB = {A:"A",B:"B",C:"C",D:"D",E:"E",F:"F",G:"G"};
+const WALLS = [
+ {id:"A", name:"קיר הכיור והכיריים", note:"הקיר הארוך · 5.94 מ׳", W:5940, H:2700, counter:[670,5920],
+  marks:[{x:1317,t:"כיור"},{x:3120,t:"כיריים"}],
+  appl:[{x:0,y:120,w:670,h:2200,t:"שייך · לקיר המקרר"},{x:1717,y:120,w:603,h:780,t:"מדיח"}],
+  units:[
+   {u:1,name:"חלל פינתי",x:670,w:247,y0:120,y1:900,off:"חלל · B20",zones:[["",1],["",1]]},
+   {u:2,name:"ארון הכיור",x:917,w:800,y0:120,y1:900,zones:[["מתחת לכיור",1]]},
+   {u:3,name:"מגירות ליד המדיח",x:2320,w:400,y0:120,y1:900,zones:[["מגירה עליונה (רדודה)",180],["מגירה אמצעית",220],["מגירה תחתונה (עמוקה)",380]]},
+   {u:4,name:"מגירות מתחת לכיריים",x:2720,w:800,y0:120,y1:900,zones:[["מגירה עליונה (רדודה)",180],["מגירה אמצעית",300],["מגירה תחתונה",300]]},
+   {u:5,name:"מגירות",x:3520,w:800,y0:120,y1:900,zones:[["מגירה עליונה (רדודה)",180],["מגירה אמצעית",300],["מגירה תחתונה",300]]},
+   {u:6,name:"מגירות",x:4320,w:800,y0:120,y1:900,zones:[["מגירה עליונה (רדודה)",180],["מגירה אמצעית",300],["מגירה תחתונה",300]]},
+   {u:7,name:"מגירות מתחת לעמוד",x:5120,w:800,y0:120,y1:900,zones:[["מגירה עליונה (רדודה)",180],["מגירה אמצעית",300],["מגירה תחתונה",300]]},
+   {u:8,name:"עמוד מדפים (דלת גבוהה)",x:5120,w:400,y0:930,y1:2695,zones:[["מדף 1 (עליון)",1],["מדף 2",1],["מדף 3",1],["מדף 4",1],["מדף 5 (תחתון)",1]]},
+   {u:9,name:"עמוד ימני",x:5520,w:396,y0:930,y1:2695,zones:[["ארון כניסה",1357,{off:"ארון · כניסה"}],["נישה פתוחה",408,{off:"נישה · כניסה"}]]}
+  ]},
+ {id:"B", name:"קיר המקרר", note:"קיר הארונות הגבוהים · 3.48 מ׳", W:3436, H:2700, counter:[2521,3431],
+  marks:[],
+  appl:[{x:0,y:120,w:505,h:2200,t:"עמוד"},{x:905,y:120,w:1016,h:1870,t:"מקרר"}],
+  units:[
+   {u:1,name:"עמוד מזווה צר",x:505,w:400,y0:120,y1:2320,top:"גבס",zones:[["מדף 1 (עליון)",319],["מדף 2",319],["מדף 3",319],["מגירה פנימית 1 (רדודה)",200],["מגירה פנימית 2 (רדודה)",200],["מגירה פנימית 3",300],["מגירה פנימית 4 (תחתונה)",300]]},
+   {u:2,name:"מעל המקרר",x:905,w:1016,y0:1990,y1:2320,zones:[["ארון הרמה מעל המקרר",1]],
+    extra:{name:"ארון עליון ליד התקרה",x:905,w:1616,y0:2320,y1:2680,first:true,off:"סגירת גבס"}},
+   {u:3,name:"עמוד מדפים ומגירות",x:1921,w:600,y0:120,y1:2320,zones:[["מדף עליון",576],["מיקרוגל",380,{off:"מיקרוגל"}],["תנור",595,{off:"תנור"}],["מגירה פנימית עליונה",200],["מגירה פנימית תחתונה (עמוקה)",380]]},
+   {u:4,name:"עמוד הפינה",x:2521,w:910,y0:930,y1:2320,top:"גבס",zones:[["ארון הרמה",450],["ארון קלפה",376],["נישה פתוחה מעל השיש",541,{off:"נישה פתוחה · מעל השיש"}]],
+    base:{name:"ארון פינתי גדול (כולל החלל שמאחורי A1–A2)",y0:120,y1:900}}
+  ]},
+ {id:"C", name:"דלפק העץ", note:"מבט מהצד הקצר · 1.66 מ׳", W:1664, H:900, counter:null, desk:true,
+  marks:[], appl:[],
+  units:[{u:1,name:"דלפק",x:1140,w:524,y0:590,y1:720,zones:[["מגירה",1]]}]},
+ {id:"D", name:"ארון פינת האוכל", note:"3 ארונות · 2.91 מ׳", W:2910, H:2700, counter:null,
+  marks:[{x:497,y:2470,t:"ארון כלים"},{x:1455,y:2470,t:"ארון מעילים"},{x:2412,y:2470,t:"ארון שירות"}],
+  appl:[{x:0,y:2300,w:2910,h:400,t:""}],
+  units:[
+   {u:1,name:"ארון כלים",x:20,w:957,y0:120,y1:2300,zones:[["מדף 1 (עליון)",270],["מדף 2",300],["מדף 3",300],["מדף 4",300],["מגירה רדודה",130],["מגירה עליונה",250],["מגירה אמצעית",250],["מגירה תחתונה",250]]},
+   {u:2,name:"ארון מעילים",x:977,w:957,y0:120,y1:2300,zones:[["מדף עליון",426],["מוט תלייה (מעילים)",1700]]},
+   {u:3,name:"ארון שירות",x:1934,w:957,y0:120,y1:2300,zones:[["מדף עליון",400],["מדף שני",426],["תא שואבים (דייסון ותחנת שואב רובוטי)",1300]]}
+  ]},
+ {id:"E", name:"ארון אמא", note:"3 חלקים · מידות משוערות", W:2500, H:2500, counter:null, plain:true,
+  marks:[], appl:[],
+  units:[
+   {u:1,name:"חלק שמאלי",x:0,w:1000,y0:100,y1:2360,zones:[["מדף עליון",125],["מוט תלייה עליון (ומדף)",340],["מוט תלייה תחתון",325],["מדף נעליים נשלף",150]]},
+   {u:2,name:"חלק אמצעי צר",x:1000,w:500,y0:100,y1:2360,zones:[["מדף 1 (עליון)",130],["מדף 2",125],["מדף 3",115],["מדף 4",110],["מוט תלייה",460]]},
+   {u:3,name:"חלק ימני",x:1500,w:1000,y0:100,y1:2360,zones:[["מדף 1 (עליון)",130],["מדף 2",125],["מדף 3",120],["מדף 4",120],["מדף 5",115],["מגירה רדודה 1",45],["מגירה רדודה 2",40],["מגירה עמוקה 1",80],["מגירה עמוקה 2",80],["מדף נעליים נשלף",85]]}
+  ]},
+ {id:"F", name:"ארון אבא", note:"ארון פינתי, מוצג פרוש · מידות משוערות", W:2100, H:2500, counter:null, plain:true,
+  marks:[], appl:[],
+  units:[
+   {u:1,name:"חלק שמאלי",x:0,w:1000,y0:100,y1:2360,zones:[["מדף 1 (עליון)",110],["מדף 2",135],["מדף 3",105],["מדף 4",120],["מגירה 1",95],["מגירה 2",80],["מגירה 3",80],["מגירה 4",80],["מדף נעליים נשלף",125]]},
+   {u:2,name:"פינה (תלייה)",x:1000,w:600,y0:100,y1:2360,zones:[["מדף עליון",110],["מוט תלייה עליון (ומדף)",345],["מוט תלייה תחתון",475]]},
+   {u:3,name:"חלק ימני צר",x:1600,w:500,y0:100,y1:2360,zones:[["מדף 1 (עליון)",110],["מדף 2",135],["מדף 3",120],["מדף 4",105],["מגירה 1",80],["מגירה 2",70],["מגירה 3",70],["מגירה 4",70],["מדף נעליים נשלף",170]]}
+  ]},
+ {id:"G", name:"ארון חדר השירות", note:"2 חלקים · מידות משוערות", W:1500, H:2500, counter:null, plain:true,
+  marks:[], appl:[],
+  units:[
+   {u:1,name:"חלק צר",x:0,w:500,y0:100,y1:2360,zones:[["מדף עליון",150],["מוט תלייה",510],["מגירה 1",80],["מגירה 2",80],["מגירה 3",75],["סל נשלף",95]]},
+   {u:2,name:"חלק רחב",x:500,w:1000,y0:100,y1:2360,zones:[["מדף 1 (עליון)",145],["מדף 2",150],["מדף 3",120],["מדף 4",130],["מדף 5",105],["מגירה",150],["תא תחתון פתוח",290]]}
+  ]}
+];
+
+/* Build flat zone list with absolute rects */
+function kindOf(n){ if(/תלייה/.test(n)) return "מוט תלייה"; if(/נעליים/.test(n)) return "מדף נעליים"; if(/סל/.test(n)) return "סל נשלף"; if(/פתוח/.test(n)&&!/נישה/.test(n)) return "תא פתוח"; if(/מגירה/.test(n)) return "מגירה"; if(/מדף/.test(n)) return "מדף"; if(/קלפה/.test(n)) return "ארון קלפה"; if(/הרמה/.test(n)) return "ארון הרמה"; if(/נישה/.test(n)) return "נישה פתוחה"; return "ארון"; }
+const ZONES = []; const ZMAP = {}; const wallCount = {};
+for (const w of WALLS){
+  for (const u of w.units){
+    const list = [];
+    if (u.top) list.push({name:"ארון עליון ליד התקרה", x:u.x, w:u.w, y0:2320, y1:2680, off:u.top==="גבס"?"סגירת גבס":null});
+    if (u.extra && u.extra.first) list.push({name:u.extra.name, x:u.extra.x, w:u.extra.w, y0:u.extra.y0, y1:u.extra.y1, off:u.extra.off||null});
+    const total = u.zones.reduce((s,z)=>s+z[1],0), span = u.y1-u.y0;
+    let y = u.y1;
+    for (const [name,rel,flag] of u.zones){
+      const h = span*rel/total;
+      list.push({name, x:u.x, w:u.w, y0:y-h, y1:y, unsure:flag==="unsure", off:(flag&&flag.off)||null});
+      y -= h;
+    }
+    if (u.off){ // whole unit is not storage: keep numbering stable, draw one grey block
+      list.forEach(()=>{ wallCount[w.id]=(wallCount[w.id]||0)+1; });
+      w.appl.push({x:u.x, y:u.y0, w:u.w, h:u.y1-u.y0, t:u.off});
+      continue;
+    }
+    if (u.base) list.push({name:u.base.name, x:u.x, w:u.w, y0:u.base.y0, y1:u.base.y1, unsure:u.base.unsure});
+    list.forEach((z,i)=>{
+      const k = (wallCount[w.id]=(wallCount[w.id]||0)+1);
+      const id = w.id+k;
+      if (z.off){ w.appl.push({x:z.x, y:z.y0, w:z.w, h:z.y1-z.y0, t:z.off}); return; }
+      const zone = Object.assign(z,{id, wall:w.id, unit:u.u, unitName:u.name, n:k,
+        code:HEB[w.id]+k, kind:kindOf(z.name), order:ZONES.length});
+      ZONES.push(zone); ZMAP[id]=zone;
+    });
+  }
+}
+const wallOf = id => WALLS.find(w=>w.id===id);
+const wallColor = id => `var(--wall${id})`;
+const whereText = z => `${wallOf(z.wall).name} · ${z.unitName} · ${z.name}`;
+const zName = zid => (S.names.get(zid)||"").trim();
+
+/* ---------- State ---------- */
+const S = { items:new Map(), photos:new Map(), notes:new Map(), names:new Map(), sel:null, moveFrom:null, openZone:null, view:"plan", canWrite:true };
+let db = null, mode = "local";
+const $ = id => document.getElementById(id);
+const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const dots = n => "●".repeat(Math.max(1,Math.min(3,+n||1)));
+const sizeName = n => ({1:"קטן",2:"בינוני",3:"גדול"})[n]||"בינוני";
+
+function setStatus(t, warn){ const el=$("status"); el.textContent=t||""; el.classList.toggle("warn",!!warn); }
+
+/* local fallback */
+function saveLocal(){
+  if (mode!=="local") return;
+  try{ localStorage.setItem("kitchen-plan-v1", JSON.stringify({items:[...S.items.values()], photos:[...S.photos.values()], notes:[...S.notes], names:[...S.names]})); }catch(e){}
+}
+function loadLocal(){
+  try{
+    const d = JSON.parse(localStorage.getItem("kitchen-plan-v1")||"null"); if(!d) return;
+    d.items.forEach(i=>S.items.set(i.id,i)); d.photos.forEach(p=>S.photos.set(p.id,p)); d.notes.forEach(([k,v])=>S.notes.set(k,v)); (d.names||[]).forEach(([k,v])=>S.names.set(k,v));
+  }catch(e){}
+}
+
+/* writes */
+async function putItem(item){
+  S.items.set(item.id,item); render();
+  if (db){ try{ const {id,...body}=item; await db.collection("items").doc(id).set(body); }catch(e){ writeFailed(e); } }
+  else saveLocal();
+}
+async function patchItem(id, patch){
+  const it = S.items.get(id); if(!it) return;
+  const next = Object.assign({},it,patch); S.items.set(id,next); render();
+  if (db){ try{ await db.collection("items").doc(id).update(patch); }catch(e){ writeFailed(e); } }
+  else saveLocal();
+}
+async function delItem(id){
+  S.items.delete(id); if(S.sel===id) S.sel=null; render();
+  if (db){ try{ await db.collection("items").doc(id).delete(); }catch(e){ writeFailed(e); } }
+  else saveLocal();
+}
+async function putPhoto(p){
+  S.photos.set(p.id,p);
+  if (db){ try{ const {id,...body}=p; await db.collection("photos").doc(id).set(body); }catch(e){ writeFailed(e); } }
+  else saveLocal();
+}
+let nameTimer=null;
+function putName(zid, text){
+  S.names.set(zid,text); renderWalls();
+  clearTimeout(nameTimer);
+  nameTimer=setTimeout(async()=>{
+    if (db){ try{ await db.collection("names").doc(zid).set({text}); }catch(e){ writeFailed(e); } }
+    else saveLocal();
+  },700);
+}
+let noteTimer=null;
+function putNote(zid, text){
+  S.notes.set(zid,text);
+  clearTimeout(noteTimer);
+  noteTimer=setTimeout(async()=>{
+    if (db){ try{ await db.collection("notes").doc(zid).set({text}); }catch(e){ writeFailed(e); } }
+    else saveLocal();
+    renderWalls();
+  },700);
+}
+function writeFailed(e){
+  if (e && e.code==="invalid_argument"){ S.canWrite=false; setStatus("אין לך הרשאת עריכה בעמוד הזה. אפשר לצפות בתכנון, אבל שינויים לא נשמרים.",true); }
+  else if (e && e.code==="quota_exceeded") setStatus("נגמר המקום לשמירה. כדאי למחוק תמונות או פריטים שלא צריך.",true);
+  else setStatus("השינוי האחרון לא נשמר. בדקו את החיבור ונסו שוב.",true);
+}
+
+/* ---------- Rendering: walls ---------- */
+// fit a name into a box (mm units): try 1–3 lines, pick the largest font that fits
+function fitLines(text, w, h){
+  const words = String(text).split(/\s+/).filter(Boolean);
+  const cw = 0.56; // average glyph width / font size
+  let best = {fs:0, lines:[text]};
+  for (let n=1; n<=Math.min(3, words.length); n++){
+    // greedy split into n balanced lines
+    const target = text.length/n; const lines=[]; let cur="";
+    for (const wd of words){ const cand = cur?cur+" "+wd:wd; if (cur && cand.length>target*1.15 && lines.length<n-1){ lines.push(cur); cur=wd; } else cur=cand; }
+    lines.push(cur);
+    const longest = Math.max(...lines.map(l=>l.length));
+    const fs = Math.min(150, w/(longest*cw), h/(lines.length*1.18));
+    if (fs > best.fs*1.08) best = {fs, lines};
+  }
+  if (best.fs < 22){ const t=best.lines.map(l=>l.length>14?l.slice(0,13)+"…":l); return {fs:22, lines:t.slice(0,2)}; }
+  return best;
+}
+function zoneLoad(zid){ let n=0,s=0; for(const it of S.items.values()) if(it.zone===zid){n++;s+=(+it.size||1);} return {n,s}; }
+
+function wallSVG(w, opts={}){
+  const PAD_T=110, PAD_B=170, H=w.H, W=w.W;
+  const Y = y => PAD_T + (H - y);         // floor-up → svg-down
+  const vb = `-40 0 ${W+80} ${H+PAD_T+PAD_B}`;
+  let s = `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(w.name)}">`;
+  // ceiling & floor
+  if(!w.desk && !w.plain) s += `<line x1="0" y1="${Y(H)}" x2="${W}" y2="${Y(H)}" stroke-width="6" stroke-dasharray="40 30" style="stroke:var(--line)"/>`;
+  s += `<rect class="struct" x="-20" y="${Y(0)}" width="${W+40}" height="14"/>`;
+  // plinth band
+  if(!w.desk){ const xs=w.units.filter(u=>u.y0===120||u.y0===100); for(const u of xs) s+=`<rect x="${u.x}" y="${Y(u.y0)}" width="${u.w}" height="${u.y0}" stroke-width="4" style="fill:var(--hatch);stroke:var(--line)"/>`; }
+  // appliances / non-storage
+  for (const a of w.appl){
+    if (a.open){ s+=`<g class="appl"><rect x="${a.x+20}" y="${Y(a.y+a.h)}" width="${a.w-40}" height="${a.h}" style="fill:none;stroke-dasharray:30 25"/><text x="${a.x+a.w/2}" y="${Y(a.y+a.h/2)}" font-size="90">${esc(a.t)}</text></g>`; continue; }
+    const parts=String(a.t).split(" · "), afs=Math.min(110, a.w*0.9/(Math.max(...parts.map(p=>p.length))*0.6), a.h/(parts.length*1.6));
+    s+=`<g class="appl"><rect x="${a.x}" y="${Y(a.y+a.h)}" width="${a.w}" height="${a.h}"/>`+parts.map((p,i)=>`<text direction="rtl" x="${a.x+a.w/2}" y="${Y(a.y+a.h/2)+(i-(parts.length-1)/2)*afs*1.25}" font-size="${afs}">${esc(p)}</text>`).join("")+`</g>`;
+  }
+  // counter
+  if (w.counter){ const [a,b]=w.counter; s+=`<rect x="${a}" y="${Y(930)}" width="${b-a}" height="30" opacity=".55" style="fill:var(--wall${w.id})"/>`; }
+  for (const m of w.marks) s+=`<text direction="rtl" x="${m.x}" y="${m.y?Y(m.y):Y(930)-34}" class="dim" style="font-size:80px">${esc(m.t)}</text>`;
+  if (w.desk){
+    s+=`<rect x="0" y="${Y(750)}" width="${W}" height="30" opacity=".7" style="fill:var(--wallC)"/>`;
+    s+=`<rect x="300" y="${Y(720)}" width="20" height="720" style="fill:var(--ink)"/>`;
+    s+=`<rect x="1140" y="${Y(590)}" width="524" height="590" fill="url(#hatch)" stroke-width="5" style="stroke:var(--muted)"/>`;
+  }
+  // zones
+  for (const z of ZONES.filter(z=>z.wall===w.id)){
+    const x=z.x, y=Y(z.y1), ww=z.w, hh=z.y1-z.y0;
+    const {n} = zoneLoad(z.id);
+    const nm = zName(z.id);
+    const cls = ["z", (nm||n)?"has":"", S.openZone===z.id?"sel":"", z.unsure?"unsure":""].join(" ");
+    const cx=x+ww/2, cy=y+hh/2;
+    s+=`<g class="${cls}" data-zone="${z.id}" tabindex="0" role="button" aria-label="${esc((nm?nm+" · ":"")+z.code+" "+whereText(z))}">`;
+    s+=`<rect class="box" x="${x+5}" y="${y+5}" width="${ww-10}" height="${hh-10}" rx="10"/>`;
+    // small corner tags: kind (right) and code (left)
+    const sfs = Math.max(26, Math.min(60, ww*0.12, hh*0.24));
+    s+=`<text class="k" direction="rtl" x="${x+ww-22}" y="${y+18+sfs*0.8}" font-size="${sfs}">${esc(z.kind)}</text>`;
+    if (nm){
+      s+=`<text class="cs" direction="ltr" x="${x+22}" y="${y+18+sfs*0.8}" font-size="${sfs*1.05}" text-anchor="start" style="text-anchor:start">${esc(z.code)}</text>`;
+      // big name, wrapped to up to 3 lines to fit
+      const avail = hh - sfs*1.6 - 20, mid = y + sfs*1.3 + 10 + avail/2;
+      const fit = fitLines(nm, ww-50, avail);
+      fit.lines.forEach((t,i)=>{ s+=`<text class="nm" direction="rtl" x="${cx}" y="${mid+(i-(fit.lines.length-1)/2)*fit.fs*1.12}" font-size="${fit.fs}">${esc(t)}</text>`; });
+    } else {
+      const fs = Math.max(30, Math.min(84, hh*0.36, ww*0.2));
+      const ccy = hh>=300 ? cy : y + hh*0.62;
+      s+=`<text class="c" direction="ltr" x="${cx}" y="${ccy}" font-size="${fs}" style="fill:var(--muted)">${esc(z.code)}</text>`;
+    }
+    if (n) s+=`<circle cx="${x+30}" cy="${y+hh-30}" r="14" style="fill:var(--accent)"/>`;
+    s+=`</g>`;
+  }
+  // width dimension
+  s+=`<text class="dim" x="${W/2}" y="${Y(0)+110}">${(W/1000).toFixed(2)} מ׳</text>`;
+  return s+`</svg>`;
+}
+
+function renderWalls(){
+  const st=$("stage");
+  st.classList.toggle("arming", !!S.sel || !!S.moveFrom);
+  st.innerHTML = WALLS.map(w=>`
+    <div class="wall" data-wall="${w.id}">
+      <div class="wall-head"><span class="tag" style="background:${wallColor(w.id)}">${HEB[w.id]}</span><h2>${esc(w.name)}</h2><small>${esc(w.note)}</small></div>
+      <div class="scroller">${wallSVG(w)}</div>
+    </div>`).join("") + `
+    <div class="legend">
+      <span><i></i>תא ריק</span>
+      <span><i style="background:var(--named)"></i>קיבל שם</span>
+      <span><i style="border-style:dashed"></i>לבדוק במקום (ייתכן מכשיר)</span>
+      <span><i style="background:var(--hatch);border-color:var(--muted)"></i>מכשיר / גבס / לא לאחסון</span>
+      <span>בפינת כל תא כתוב אם זו מגירה, מדף או ארון, ולידו הקוד שלו.</span>
+    </div>`;
+}
+
+/* ---------- Rendering: zone panel ---------- */
+function renderTray(){
+  const named = ZONES.filter(z=>zName(z.id)).length;
+  const el=$("hintCount"); if(el) el.textContent = S.moveFrom?`עכשיו לוחצים על התא שאליו יעבור ${ZMAP[S.moveFrom].code}.`:"";
+}
+const ICON = {
+  drawer:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="7" rx="1.5"/><rect x="3" y="13" width="18" height="7" rx="1.5"/><path d="M10 7.5h4M10 16.5h4"/></svg>',
+  shelf:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="1.5"/><path d="M3 9h18M3 15h18"/></svg>',
+  hanger:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6a2 2 0 1 1 2 2c-1 .5-2 1-2 2v1"/><path d="M12 11 3 17.5a1 1 0 0 0 .6 1.8h16.8a1 1 0 0 0 .6-1.8L12 11z"/></svg>',
+  cabinet:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="3" width="16" height="18" rx="1.5"/><path d="M12 3v18M9.5 11v2M14.5 11v2"/></svg>',
+  tag:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9-9-9z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>',
+  note:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+  move:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-4 4"/><path d="M3 7h18"/><path d="M7 21l-4-4 4-4"/><path d="M21 17H3"/></svg>',
+  trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 14h10l1-14"/></svg>',
+  close:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  tap:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11V5a2 2 0 0 1 4 0v5"/><path d="M13 10a2 2 0 0 1 4 0v1a2 2 0 0 1 4 0v3a7 7 0 0 1-7 7h-1a7 7 0 0 1-6-3.5L4.5 14a2 2 0 0 1 3.4-2L9 13.5"/></svg>'
+};
+const kindIcon = k => /מגירה/.test(k)?ICON.drawer : /מדף/.test(k)?ICON.shelf : /תלייה/.test(k)?ICON.hanger : ICON.cabinet;
+function renderZonePanel(){
+  const p=$("zonePanel"), z=ZMAP[S.openZone];
+  if(!z){ p.hidden=true; return; }
+  p.hidden=false;
+  p.style.setProperty("--wc", wallColor(z.wall));
+  const items=[...S.items.values()].filter(i=>i.zone===z.id);
+  const hasContent = zName(z.id)||(S.notes.get(z.id)||"").trim()||items.length;
+  p.innerHTML = `
+    <div class="zp-head">
+      <div class="zp-icon" aria-hidden="true">${kindIcon(z.kind)}</div>
+      <div class="zp-title">
+        <div class="zp-kind">${esc(z.kind)} <span class="chip">${esc(z.code)}</span></div>
+        <div class="zp-where">${esc(wallOf(z.wall).name)} · ${esc(z.unitName)}</div>
+      </div>
+      <button class="icon-btn" id="zClose" aria-label="סגירה">${ICON.close}</button>
+    </div>
+    <div class="zp-body">
+      <label for="zName" class="fl">${ICON.tag} מה ייכנס לכאן?</label>
+      <input id="zName" class="zname" maxlength="40" placeholder="למשל: סירים ומחבתות" value="${esc(S.names.get(z.id)||"")}" enterkeyhint="done">
+      <label for="zNote" class="fl">${ICON.note} הערות <span class="opt">(לא חייב :))</span></label>
+      <textarea id="zNote" placeholder="למשל: לא כולל כוסות יין">${esc(S.notes.get(z.id)||"")}</textarea>
+      ${items.length?`<p class="hint">פריטים שנרשמו כאן קודם: ${items.map(i=>esc(i.name)).join(", ")}</p>`:""}
+      <button class="btn-save" id="zSave">${ICON.check} עדכון</button>
+      <div class="zp-actions">
+        ${S.moveFrom===z.id
+          ? `<div class="move-note">${ICON.tap} עכשיו לוחצים בשרטוט על התא שאליו התוכן יעבור</div><button class="act" id="zMoveCancel">${ICON.close} ביטול ההעברה</button>`
+          : `<button class="act" id="zMove">${ICON.move} העברת תוכן לתא אחר</button>${hasContent?`<button class="act danger" id="zClear">${ICON.trash} <span>מחיקת תוכן התא</span></button>`:""}`}
+      </div>
+    </div>`;
+}
+function fillHintIcons(){ const a=$("si1"),b=$("si2"),c=$("si3"); if(a&&!a.innerHTML){ a.innerHTML=ICON.tap; b.innerHTML=ICON.tag; c.innerHTML=ICON.check; } }
+function render(){ fillHintIcons(); renderWalls(); renderTray(); renderZonePanel(); if(S.view==="labels") renderLabels(); }
+
+/* ---------- Labels view ---------- */
+function labelGroups(){
+  const g=[];
+  for (const z of ZONES){
+    const items=[...S.items.values()].filter(i=>i.zone===z.id);
+    if(items.length || zName(z.id) || (S.notes.get(z.id)||"").trim()) g.push({z,items});
+  }
+  return g;
+}
+function renderLabels(){
+  const g=labelGroups();
+  const free=[...S.items.values()].filter(i=>!i.zone).length;
+  $("labelsSum").textContent = g.length ? `${g.length} תאים מתוכננים` + (free?` · ${free} פריטים עוד לא שובצו`:"") : "עוד לא תוכנן כלום. חוזרים ל״תכנון״ ונותנים לתאים שם.";
+  $("labels").innerHTML = g.map(({z,items})=>`
+    <article class="lbl">
+      <div class="top" style="background:${wallColor(z.wall)}"><span class="nm">${esc(zName(z.id)||"ללא שם")}</span><span class="sub"><span class="badge">${esc(z.code)}</span>${esc(z.kind)} · ${esc(whereText(z))}</span></div>
+      ${items.length?`<ul>${items.map(i=>`<li>${esc(i.name)}${i.from?` <span>(מ: ${esc(i.from)})</span>`:""}</li>`).join("")}</ul>`:`<div style="height:10px"></div>`}
+      ${S.notes.get(z.id)?`<div class="note">${esc(S.notes.get(z.id))}</div>`:""}
+    </article>`).join("");
+  $("maps").innerHTML = WALLS.map(w=>`<div class="wall" data-wall="${w.id}"><div class="wall-head"><span class="tag" style="background:${wallColor(w.id)}">${HEB[w.id]}</span><h2>${esc(w.name)}</h2></div><div class="scroller">${wallSVG(w,{labels:true})}</div></div>`).join("");
+}
+function plainList(){
+  const lines=["תכנון פריקה – הבית החדש","הקוד = אות הקיר + מספר התא במפה. A = קיר הכיור, B = קיר המקרר, C = דלפק העץ, D = ארון פינת האוכל, E = ארון אמא, F = ארון אבא, G = ארון חדר השירות",""];
+  for (const {z,items} of labelGroups()){
+    lines.push(`${z.code}${zName(z.id)?` – ${zName(z.id)}`:""}  |  ${z.kind} · ${whereText(z)}`);
+    items.forEach(i=>lines.push(`   • ${i.name}${i.from?` (מ: ${i.from})`:""}`));
+    if(S.notes.get(z.id)) lines.push(`   הערה: ${S.notes.get(z.id)}`);
+    lines.push("");
+  }
+  return lines.join("\n");
+}
+function printableHTML(){
+  const css=getComputedStyle(document.documentElement);
+  const color=id=>css.getPropertyValue("--wall"+id).trim()||"#333";
+  const cards=labelGroups().map(({z,items})=>`<div class="l"><div class="h" style="background:${color(z.wall)}"><div><div class="n">${esc(zName(z.id)||"ללא שם")}</div><div><b dir="ltr">${esc(z.code)}</b> · ${esc(z.kind)} · ${esc(whereText(z))}</div></div></div><ul>${items.map(i=>`<li>${esc(i.name)}${i.from?` <small>(מ: ${esc(i.from)})</small>`:""}</li>`).join("")}</ul>${S.notes.get(z.id)?`<p>${esc(S.notes.get(z.id))}</p>`:""}</div>`).join("");
+  const maps=WALLS.map(w=>`<h2>${HEB[w.id]} · ${esc(w.name)}</h2>`+wallSVG(w,{labels:true})).join("");
+  return `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>מדבקות פריקה – הבית החדש</title><style>
+  body{font-family:Arial,sans-serif;margin:16px;color:#111}
+  :root{--card:#fff;--ink:#111;--muted:#666;--line:#bbb;--hatch:#e6e6e6;--accent:#e2572b;--accent-soft:#fbe3d8;--wallA:${color("A")};--wallB:${color("B")};--wallC:${color("C")};--wallD:${color("D")};--wallE:${color("E")};--wallF:${color("F")};--wallG:${color("G")}}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  .l{border:2px solid #111;border-radius:8px;overflow:hidden;break-inside:avoid}
+  .h{color:#fff;padding:8px 12px}.h .n{font-size:28px;font-weight:700}.h b{font-size:18px;background:rgba(255,255,255,.25);padding:0 6px;border-radius:4px}
+  ul{margin:8px 0;font-size:15px} small{color:#555} p{margin:0 12px 10px;font-size:13px;color:#333}
+  h1{font-size:22px} h2{font-size:16px;margin:18px 0 4px;break-after:avoid} svg{width:100%;height:auto;break-inside:avoid}
+  .maps{break-before:page}
+  .z rect.box{fill:#fff;stroke:#111;stroke-width:6}.z.has rect.box{fill:#d4ebfa}.z text.nm{fill:#1c4f78}.z text.cs{fill:#666;font-weight:600}.z.unsure rect.box{stroke-dasharray:30 18}
+  .z text.c{font-weight:700;text-anchor:middle;dominant-baseline:central}.z text.k{fill:#666;text-anchor:start}.z text.nm{fill:#2f6fb0;font-weight:700;text-anchor:middle;dominant-baseline:central}.z text.n{fill:#e2572b;font-weight:700;text-anchor:middle;dominant-baseline:central}
+  .appl rect{fill:#e6e6e6;stroke:#888;stroke-width:5}.appl text{fill:#666;text-anchor:middle;dominant-baseline:central}
+  .struct{fill:#111}.dim{fill:#666;font-size:70px;text-anchor:middle}
+  </style></head><body><h1>מדבקות לארגזים – הבית החדש</h1><p>הקוד = אות הקיר + מספר התא במפה. A = קיר הכיור, B = קיר המקרר, C = דלפק העץ, D = ארון פינת האוכל, E = ארון אמא, F = ארון אבא, G = ארון חדר השירות.</p><div class="grid">${cards}</div><div class="maps"><h1>מפת פריקה</h1>${maps}</div></body></html>`;
+}
+
+/* ---------- Interaction ---------- */
+async function setText(coll, map, zid, text){
+  map.set(zid,text);
+  if (db){ try{ await db.collection(coll).doc(zid).set({text}); }catch(e){ writeFailed(e); } }
+}
+async function saveNow(zid, btn){
+  if(!ZMAP[zid]||!$("zName")) return;
+  clearTimeout(nameTimer); clearTimeout(noteTimer);
+  const nm=$("zName").value, nt=$("zNote").value;
+  btn.classList.add("done"); btn.innerHTML=ICON.check+" נשמר";
+  await setText("names", S.names, zid, nm); await setText("notes", S.notes, zid, nt); saveLocal();
+  setTimeout(()=>{ if(S.openZone===zid){ S.openZone=null; render(); } else renderWalls(); }, 650);
+}
+async function clearZone(zid){
+  if(!ZMAP[zid]) return;
+  clearTimeout(nameTimer); clearTimeout(noteTimer);
+  const inZ=[...S.items.values()].filter(i=>i.zone===zid).map(i=>i.id);
+  for(const id of inZ) S.items.set(id, Object.assign({}, S.items.get(id), {zone:null}));
+  S.names.set(zid,""); S.notes.set(zid,""); render(); saveLocal();
+  setStatus(`התוכן של ${ZMAP[zid].code} נמחק.`);
+  if(!db) return;
+  try{ for(const id of inZ) await db.collection("items").doc(id).update({zone:null}); }catch(e){ writeFailed(e); }
+  try{ await db.collection("names").doc(zid).delete(); await db.collection("notes").doc(zid).delete(); }catch(e){ writeFailed(e); }
+}
+async function swapZones(a, b){
+  const A=ZMAP[a], B=ZMAP[b]; if(!A||!B) return;
+  const inA=[...S.items.values()].filter(i=>i.zone===a).map(i=>i.id);
+  const inB=[...S.items.values()].filter(i=>i.zone===b).map(i=>i.id);
+  const swapped = inB.length || zName(b) || (S.notes.get(b)||"").trim();
+  const na=S.names.get(a)||"", nb=S.names.get(b)||"", ta=S.notes.get(a)||"", tb=S.notes.get(b)||"";
+  clearTimeout(nameTimer); clearTimeout(noteTimer);
+  // local state first so the drawing updates at once
+  for(const id of inA) S.items.set(id, Object.assign({}, S.items.get(id), {zone:b}));
+  for(const id of inB) S.items.set(id, Object.assign({}, S.items.get(id), {zone:a}));
+  S.names.set(a,nb); S.names.set(b,na); S.notes.set(a,tb); S.notes.set(b,ta);
+  S.openZone=b; render(); saveLocal();
+  setStatus(swapped ? `${A.code} ו־${B.code} הוחלפו.` : `התכולה של ${A.code} עברה ל־${B.code}.`);
+  if (!db) return;
+  try{
+    for(const id of inA) await db.collection("items").doc(id).update({zone:b});
+    for(const id of inB) await db.collection("items").doc(id).update({zone:a});
+  }catch(e){ writeFailed(e); }
+  await setText("names", S.names, a, nb); await setText("names", S.names, b, na);
+  await setText("notes", S.notes, a, tb); await setText("notes", S.notes, b, ta);
+}
+function selectItem(id){ S.sel = (S.sel===id)?null:id; render(); }
+function openZone(zid){ S.openZone = zid; render(); }
+function assign(itemId, zid){
+  if(!S.items.has(itemId)||!ZMAP[zid]) return;
+  S.sel=null; S.openZone=zid; patchItem(itemId,{zone:zid});
+}
+document.addEventListener("click", e=>{
+  const del=e.target.closest("[data-del]");
+  if(del){ e.stopPropagation();
+    if(del.dataset.armed){ delItem(del.dataset.del); }
+    else { del.dataset.armed="1"; del.textContent="למחוק?"; setTimeout(()=>{ if(del.isConnected){ delete del.dataset.armed; del.textContent="✕"; } },3000); }
+    return; }
+  const un=e.target.closest("[data-unassign]");
+  if(un){ e.stopPropagation(); patchItem(un.dataset.unassign,{zone:null}); return; }
+  const card=e.target.closest("[data-item]");
+  if(card && !e.target.closest("button")){ selectItem(card.dataset.item); return; }
+  const z=e.target.closest("#stage [data-zone]");
+  if(z){
+    if(S.moveFrom){ const from=S.moveFrom; S.moveFrom=null; if(from!==z.dataset.zone) swapZones(from, z.dataset.zone); else render(); return; }
+    if(S.sel) assign(S.sel, z.dataset.zone); else openZone(z.dataset.zone); return; }
+  const zb=e.target.closest("button[id^='z']"); const bid=zb?zb.id:"";
+  if(bid==="zSave"){ saveNow(S.openZone, zb); return; }
+  if(bid==="zClose"){ S.openZone=null; S.moveFrom=null; render(); return; }
+  if(bid==="zMove"){ S.sel=null; S.moveFrom=S.openZone; render(); return; }
+  if(bid==="zMoveCancel"){ S.moveFrom=null; render(); return; }
+  if(bid==="zClear"){
+    const b=zb;
+    if(!b.dataset.armed){ b.dataset.armed="1"; b.classList.add("armed"); b.querySelector("span").textContent="בטוח? לוחצים שוב למחיקה"; setTimeout(()=>{ if(b.isConnected){ delete b.dataset.armed; b.classList.remove("armed"); b.querySelector("span").textContent="מחיקת תוכן התא"; } },4000); return; }
+    clearZone(S.openZone);
+  }
+});
+document.addEventListener("keydown", e=>{
+  if(e.key==="Enter" && e.target.id==="zName"){ e.preventDefault(); const b=$("zSave"); if(b) saveNow(S.openZone,b); return; }
+  if(e.key==="Escape" && (S.moveFrom||S.sel)){ S.moveFrom=null; S.sel=null; render(); } });
+$("stage").addEventListener("keydown", e=>{
+  if((e.key==="Enter"||e.key===" ") && e.target.closest("[data-zone]")){ e.preventDefault(); e.target.closest("[data-zone]").dispatchEvent(new MouseEvent("click",{bubbles:true})); }
+});
+document.addEventListener("input", e=>{
+  if(e.target.id==="zNote" && S.openZone) putNote(S.openZone, e.target.value);
+  if(e.target.id==="zName" && S.openZone) putName(S.openZone, e.target.value);
+});
+
+// tabs
+function setView(v){
+  S.view=v;
+  $("tab-plan").setAttribute("aria-selected", v==="plan"); $("tab-labels").setAttribute("aria-selected", v==="labels");
+  $("view-plan").hidden = v!=="plan"; $("view-labels").hidden = v!=="labels";
+  if(v==="labels") renderLabels();
+}
+$("tab-plan").onclick=()=>setView("plan");
+$("tab-labels").onclick=()=>setView("labels");
+$("copyBtn").onclick=async()=>{
+  try{ await navigator.clipboard.writeText(plainList()); $("copyBtn").textContent="הועתק ✓"; }
+  catch(e){ $("copyBtn").textContent="ההעתקה נחסמה"; }
+  setTimeout(()=>$("copyBtn").textContent="העתקת הרשימה",2200);
+};
+
+/* ---------- Standalone (GitHub Pages) ---------- */
+async function packPlan(){
+  const data = JSON.stringify({v:1, names:[...S.names].filter(([k,v])=>v&&v.trim()), notes:[...S.notes].filter(([k,v])=>v&&v.trim())});
+  let bytes = new TextEncoder().encode(data), tag="j";
+  try{ if (window.CompressionStream){ const cs=new Blob([bytes]).stream().pipeThrough(new CompressionStream("deflate-raw")); bytes=new Uint8Array(await new Response(cs).arrayBuffer()); tag="z"; } }catch(e){ tag="j"; bytes=new TextEncoder().encode(data); }
+  let bin=""; bytes.forEach(b=>bin+=String.fromCharCode(b));
+  return tag + btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+async function unpackPlan(str){
+  const tag=str[0], b64=str.slice(1).replace(/-/g,"+").replace(/_/g,"/");
+  const bin=atob(b64); let bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));
+  if(tag==="z"){ const ds=new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw")); bytes=new Uint8Array(await new Response(ds).arrayBuffer()); }
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+function setupStandalone(){
+  // share
+  $("shareBtn").onclick = async ()=>{
+    const named=[...S.names.values()].filter(v=>v&&v.trim()).length;
+    if(!named){ setStatus("עוד אין מה לשלוח. נותנים שם לכמה תאים ואז שולחים.",true); return; }
+    const url = location.origin + location.pathname + "#plan=" + await packPlan();
+    const text = "התכנון לבית החדש (" + named + " תאים). לפתוח את הקישור:\n" + url;
+    if (navigator.share){ try{ await navigator.share({title:"הבית החדש · תכנון פריקה", text}); return; }catch(e){ if(e && e.name==="AbortError") return; } }
+    location.href = "https://wa.me/?text=" + encodeURIComponent(text);
+  };
+  // print
+  $("dlBtn").onclick = ()=>{
+    const w = window.open("", "_blank");
+    if(!w){ setStatus("הדפדפן חסם חלון חדש. אפשר לאשר חלונות קופצים ולנסות שוב.",true); return; }
+    w.document.open(); w.document.write(printableHTML().replace("</body>","<script>setTimeout(()=>print(),400)<\/script></body>")); w.document.close();
+  };
+  // import from link
+  const m = location.hash.match(/^#plan=(.+)$/);
+  if (m){
+    $("importBar").hidden=false;
+    $("importNo").onclick=()=>{ $("importBar").hidden=true; history.replaceState(null,"",location.pathname); };
+    $("importYes").onclick=async()=>{
+      try{
+        const d = await unpackPlan(m[1]);
+        S.names=new Map(d.names||[]); S.notes=new Map(d.notes||[]);
+        saveLocal(); render();
+        setStatus("התכנון נטען ✓");
+      }catch(e){ setStatus("לא הצלחתי לקרוא את הקישור. כדאי לבקש שישלחו שוב.",true); }
+      $("importBar").hidden=true; history.replaceState(null,"",location.pathname);
+    };
+  }
+}
+
+/* ---------- Boot ---------- */
+render();
+(async()=>{
+  const cl = window.claude;
+  if(!cl){ loadLocal(); render(); setupStandalone(); return; }
+  const [dbNs, dl, usr] = await Promise.all([
+    cl.use("db").catch(()=>null), cl.use("downloads").catch(()=>null), cl.use("user").catch(()=>null)
+  ]);
+  // downloads
+  if(dl){ $("dlBtn").hidden=false; $("dlBtn").onclick=async()=>{ try{ await dl.save({filename:"kitchen-labels.html", data:printableHTML()}); }catch(e){} }; }
+  // db
+  if(!dbNs){ loadLocal(); render(); setStatus("מצב מקומי: השינויים נשמרים רק בדפדפן הזה."); return; }
+  db=dbNs; mode="db";
+  try{ if(usr){ const w=await usr.can("data.write"); if(w===false){ S.canWrite=false; setStatus("מצב צפייה: אפשר לראות את התכנון, בלי לשנות."); } } }catch(e){}
+  let loaded=false;
+  const t=setTimeout(()=>{ if(!loaded) setStatus("הנתונים עדיין לא נטענו. ייתכן שהחיבור איטי.",true); },10000);
+  const done=()=>{ if(!loaded){ loaded=true; clearTimeout(t); if(S.canWrite) setStatus("נשמר אוטומטית ומשותף לכל מי שפותח את העמוד."); } };
+  const onErr=e=>{ done(); if(e&&e.code==="revoked") setStatus("הגישה לנתונים הופסקה.",true); else setStatus("אי אפשר לטעון את הנתונים כרגע.",true); };
+  db.collection("items").onSnapshot(snap=>{
+    S.items=new Map(snap.docs.map(d=>[d.id,Object.assign({id:d.id},d.data())]));
+    if(S.sel && !S.items.has(S.sel)) S.sel=null;
+    if(!snap.metadata.fromCache) done(); render();
+  }, onErr);
+  db.collection("names").onSnapshot(snap=>{
+    const active=document.activeElement&&document.activeElement.id==="zName";
+    S.names=new Map(snap.docs.map(d=>[d.id,String(d.data().text||"")]));
+    if(!snap.metadata.fromCache) done();
+    renderWalls(); renderTray(); if(!active) renderZonePanel(); if(S.view==="labels") renderLabels();
+  }, ()=>{});
+  db.collection("notes").onSnapshot(snap=>{
+    const active=document.activeElement&&document.activeElement.id==="zNote";
+    S.notes=new Map(snap.docs.map(d=>[d.id,String(d.data().text||"")]));
+    renderWalls(); if(!active) renderZonePanel(); if(S.view==="labels") renderLabels();
+  }, ()=>{});
+})();
+</script>
+</body>
+</html>
